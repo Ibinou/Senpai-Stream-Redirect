@@ -11,7 +11,7 @@
   <!-- Web app iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="MaApp">
+  <meta name="apple-mobile-web-app-title" content="Senpai Stream">
 
   <title>Senpai Stream</title>
 
@@ -23,26 +23,33 @@
 
   <script>
     (async () => {
-  const targetUrl = "https://senpai.wiki/";
-  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+      const targetUrl = "https://senpai.wiki/";
+      const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
 
-  try {
-    const res = await fetch(proxyUrl);
-    const html = await res.text();
+      try {
+        const res = await fetch(proxyUrl);
+        const html = await res.text();
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
 
-    const link = doc.querySelector("a.url-display");
-    const url = link ? link.href : null;
+        const link = doc.querySelector("a.url-display");
+        const url = link ? link.href : null;
 
-    console.log("Une URL a été trouvée :", url);
-    window.location.replace(url);
-  } catch (e) {
-    console.error("Échec :", e);
-  }
-})();
+        console.log("Une URL a été trouvée :", url);
 
+        if (url) {
+          window.location.replace(url);
+        } else {
+          alert("Impossible de trouver le lien !");
+        }
+
+      } catch (e) {
+        console.error("Échec :", e);
+        alert("Erreur lors de la récupération du lien !");
+      }
+    })();
   </script>
+
 </body>
 </html>
