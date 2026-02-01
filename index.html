@@ -2,9 +2,9 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  
+
   <!-- Créé par Iban -->
-  
+
   <!-- Viewport iOS -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
@@ -21,32 +21,57 @@
 
 <body>
 
+  <div id="install" style="display:none;">
+    <h2>📲 Installer Senpai Stream</h2>
+    <p>
+      1. Appuie sur le bouton <strong>Partager</strong> en bas de Safari<br>
+      2. Choisis <strong>Ajouter à l’écran d’accueil</strong><br>
+      3. Ouvre l’app depuis ton écran d’accueil
+    </p>
+
+    <button id="go">
+      Continuer vers Senpai Stream
+    </button>
+  </div>
+
   <script>
     (async () => {
-      const targetUrl = "https://senpai.wiki/";
-      const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
+      const isStandalone =
+        window.navigator.standalone === true ||
+        window.matchMedia("(display-mode: standalone)").matches;
 
-      try {
-        const res = await fetch(proxyUrl);
-        const html = await res.text();
+      // 👉 Si installé : on scrape et on redirige
+      if (isStandalone) {
+        const targetUrl = "https://senpai.wiki/";
+        const proxyUrl =
+          "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
+        try {
+          const res = await fetch(proxyUrl);
+          const html = await res.text();
 
-        const link = doc.querySelector("a.url-display");
-        const url = link ? link.href : null;
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const link = doc.querySelector("a.url-display");
+          const url = link ? link.href : null;
 
-        console.log("Une URL a été trouvée :", url);
-
-        if (url) {
-          window.location.replace(url);
-        } else {
-          alert("Impossible de trouver le lien !");
+          if (url) {
+            window.location.replace(url);
+          } else {
+            alert("Lien introuvable.");
+          }
+        } catch (e) {
+          alert("Erreur de chargement.");
+          console.error(e);
         }
 
-      } catch (e) {
-        console.error("Échec :", e);
-        alert("Erreur lors de la récupération du lien !");
+      } 
+      // 👉 Sinon : afficher le tuto
+      else {
+        document.getElementById("install").style.display = "block";
+
+        document.getElementById("go").onclick = () => {
+          window.location.href = "https://senpai-stream.beer/";
+        };
       }
     })();
   </script>
