@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Viewport iOS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- Web app iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MaApp">
+
+  <title>Senpai Stream</title>
+
+  <!-- Icône iOS -->
+  <link rel="apple-touch-icon" href="icon.png">
+</head>
+
+<body>
+
+  <script>
+    (async () => {
+  const targetUrl = "https://senpai.wiki/";
+  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+
+  try {
+    const res = await fetch(proxyUrl);
+    const html = await res.text();
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    const link = doc.querySelector("a.url-display");
+    const url = link ? link.href : null;
+
+    console.log("Une URL a été trouvée :", url);
+    window.location.replace(url);
+  } catch (e) {
+    console.error("Échec :", e);
+  }
+})();
+
+  </script>
+</body>
+</html>
