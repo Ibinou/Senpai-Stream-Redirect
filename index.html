@@ -9,22 +9,181 @@
   <meta name="apple-mobile-web-app-title" content="Senpai Stream">
   <title>Senpai Stream</title>
   <link rel="apple-touch-icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #111; color: #eee; }
-    h2 { color: #f90; }
-    button { margin-top: 16px; padding: 12px 24px; font-size: 16px; background: #f90; border: none; border-radius: 8px; cursor: pointer; }
-    #log { margin-top: 20px; font-size: 12px; color: #aaa; white-space: pre-wrap; word-break: break-all; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f6f3;
+      --fg: #1a1a1a;
+      --muted: #9a9a8e;
+      --border: #e0dfd9;
+      --accent: #1a1a1a;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #install {
+      display: none;
+      min-height: 100dvh;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 48px 36px;
+      gap: 0;
+      animation: fadein 0.6s ease both;
+    }
+
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: clamp(28px, 7vw, 42px);
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--fg);
+      margin-bottom: 32px;
+    }
+
+    h2 span {
+      color: var(--muted);
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 48px;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .step-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      padding-top: 2px;
+      min-width: 18px;
+    }
+
+    .step-text {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--fg);
+    }
+
+    .step-text strong {
+      font-weight: 500;
+    }
+
+    .divider {
+      width: 32px;
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 48px;
+    }
+
+    #go {
+      appearance: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 13px 28px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--fg);
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    #go:hover:not(:disabled) {
+      background: var(--fg);
+      border-color: var(--fg);
+      color: var(--bg);
+    }
+
+    #go:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .arrow {
+      font-size: 13px;
+      transition: transform 0.2s ease;
+    }
+
+    #go:hover:not(:disabled) .arrow {
+      transform: translateX(3px);
+    }
+
+    #log {
+      margin-top: 28px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-width: 360px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #log.visible { opacity: 1; }
   </style>
 </head>
 <body>
-  <div id="install" style="display:none;">
-    <h2>📲 Installer Senpai Stream</h2>
-    <p>
-      1. Appuie sur le bouton <strong>Partager</strong> en bas de Safari<br>
-      2. Choisis <strong>Ajouter à l'écran d'accueil</strong><br>
-      3. Ouvre l'app depuis ton écran d'accueil
-    </p>
-    <button id="go">▶ Continuer vers Senpai Stream</button>
+  <div id="install">
+    <p class="label">Senpai Stream</p>
+    <h2>Installe<br><span>l'application.</span></h2>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">01</span>
+        <span class="step-text">Appuie sur <strong>Partager</strong> en bas de Safari</span>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <span class="step-text">Choisis <strong>Ajouter à l'écran d'accueil</strong></span>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <span class="step-text">Ouvre l'app depuis ton écran d'accueil</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <button id="go">
+      Continuer quand même
+      <span class="arrow">→</span>
+    </button>
     <div id="log"></div>
   </div>
 
@@ -41,38 +200,38 @@
 
   function log(msg) {
     console.log(msg);
-    if (logEl) logEl.textContent += msg + "\n";
+    if (logEl) {
+      logEl.classList.add("visible");
+      logEl.textContent += msg + "\n";
+    }
   }
 
   async function tryProxy(proxyFn) {
     const proxyUrl = proxyFn(TARGET);
-    log("Essai proxy: " + proxyUrl);
+    log("→ " + proxyUrl);
     const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-    log("Status: " + res.status);
     if (!res.ok) throw new Error("HTTP " + res.status);
     const html = await res.text();
-    log("HTML recu (" + html.length + " chars)");
     const doc = new DOMParser().parseFromString(html, "text/html");
     const link = doc.querySelector("a.url-display");
-    log("Lien trouve: " + (link ? link.href : "aucun"));
-    if (!link) throw new Error("Selecteur a.url-display introuvable");
+    if (!link) throw new Error("a.url-display introuvable");
+    log("✓ " + link.href);
     return link.href;
   }
 
   async function scrapeAndRedirect() {
-    log("--- Demarrage scrape ---");
+    log("Recherche du lien...");
     for (const proxyFn of PROXIES) {
       try {
         const url = await tryProxy(proxyFn);
-        log("Redirection vers: " + url);
         window.location.replace(url);
         return;
       } catch (e) {
-        log("Echec: " + e.message);
+        log("✗ " + e.message);
       }
     }
-    log("Tous les proxies ont echoue.");
-    alert("Impossible de recuperer le lien. Verifie ta connexion ou reessaie plus tard.");
+    log("Aucun proxy disponible.");
+    alert("Impossible de récupérer le lien. Réessaie plus tard.");
   }
 
   (async () => {
@@ -83,13 +242,16 @@
     if (isStandalone) {
       await scrapeAndRedirect();
     } else {
-      document.getElementById("install").style.display = "block";
+      const installEl = document.getElementById("install");
+      installEl.style.display = "flex";
+
       document.getElementById("go").onclick = async () => {
-        document.getElementById("go").disabled = true;
-        document.getElementById("go").textContent = "Chargement...";
+        const btn = document.getElementById("go");
+        btn.disabled = true;
+        btn.innerHTML = `Chargement <span class="arrow">...</span>`;
         await scrapeAndRedirect();
-        document.getElementById("go").disabled = false;
-        document.getElementById("go").textContent = "Continuer vers Senpai Stream";
+        btn.disabled = false;
+        btn.innerHTML = `Continuer quand même <span class="arrow">→</span>`;
       };
     }
   })();
