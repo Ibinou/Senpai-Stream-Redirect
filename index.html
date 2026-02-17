@@ -2,107 +2,76 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-
   <!-- Créé par Iban -->
-
-  <!-- Viewport iOS -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-  <!-- Web app iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Senpai Stream">
-
   <title>Senpai Stream</title>
-
-  <!-- Icône iOS -->
   <link rel="apple-touch-icon" href="icon.png">
 </head>
-
 <body>
-
   <div id="install" style="display:none;">
     <h2>📲 Installer Senpai Stream</h2>
     <p>
       1. Appuie sur le bouton <strong>Partager</strong> en bas de Safari<br>
-      2. Choisis <strong>Ajouter à l’écran d’accueil</strong><br>
-      3. Ouvre l’app depuis ton écran d’accueil
+      2. Choisis <strong>Ajouter à l'écran d'accueil</strong><br>
+      3. Ouvre l'app depuis ton écran d'accueil
     </p>
-
     <button id="go">
       Continuer vers Senpai Stream
     </button>
   </div>
 
 <script>
+  async function scrapeAndRedirect() {
+    const targetUrl = "https://senpai.wiki/";
+    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
+    console.log("Fetch en cours...", proxyUrl);
+    try {
+      const res = await fetch(proxyUrl);
+      console.log("Réponse reçue:", res.status);
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const link = doc.querySelector("a.url-display");
+      console.log("Lien trouvé:", link);
+      const url = link ? link.href : null;
+      console.log("URL extraite:", url);
+      if (url) {
+        console.log("Redirection vers:", url);
+        window.location.replace(url);
+      } else {
+        console.warn("Aucun lien trouvé");
+        alert("Lien introuvable.");
+      }
+    } catch (e) {
+      console.error("Erreur fetch:", e);
+      alert("Erreur de chargement.");
+    }
+  }
+
   (async () => {
     console.log("Script lancé");
-
     const isStandalone =
       window.navigator.standalone === true ||
       window.matchMedia("(display-mode: standalone)").matches;
-
     console.log("isStandalone:", isStandalone);
 
-    // 👉 Si installé : on scrape et on redirige
+    // 👉 Si installé : scrape et redirige automatiquement
     if (isStandalone) {
       console.log("Mode standalone détecté");
-
-      const targetUrl = "https://senpai.wiki/";
-      const proxyUrl =
-        "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
-
-      console.log("Target URL:", targetUrl);
-      console.log("Proxy URL:", proxyUrl);
-
-      try {
-        console.log("Fetch en cours...");
-        const res = await fetch(proxyUrl);
-        console.log("Réponse reçue:", res.status);
-
-        const html = await res.text();
-        console.log("HTML récupéré");
-
-        const doc = new DOMParser().parseFromString(html, "text/html");
-        const link = doc.querySelector("a.url-display");
-
-        console.log("Lien trouvé:", link);
-
-        const url = link ? link.href : null;
-        console.log("URL extraite:", url);
-
-        if (url) {
-          console.log("Redirection vers:", url);
-          window.location.replace(url);
-        } else {
-          console.log("Aucun lien trouvé");
-          alert("Lien introuvable.");
-        }
-      } catch (e) {
-        console.error("Erreur fetch:", e);
-        alert("Erreur de chargement.");
-      }
-
-    } 
-    // 👉 Sinon : afficher le tuto
+      await scrapeAndRedirect();
+    }
+    // 👉 Sinon : afficher le tuto avec bouton qui scrape aussi
     else {
       console.log("Mode navigateur normal");
-
       document.getElementById("install").style.display = "block";
-
-      document.getElementById("go").onclick = () => {
+      document.getElementById("go").onclick = async () => {
         console.log("Bouton cliqué");
-
-        // URL directe si pas installé
-        const fallbackUrl = "https://senpai.wiki/";
-        console.log("Redirection fallback vers:", fallbackUrl);
-
-        window.location.href = fallbackUrl;
+        await scrapeAndRedirect();
       };
     }
   })();
 </script>
-
-
 </body>
 </html>
