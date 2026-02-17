@@ -34,47 +34,75 @@
     </button>
   </div>
 
-  <script>
-    (async () => {
-      const isStandalone =
-        window.navigator.standalone === true ||
-        window.matchMedia("(display-mode: standalone)").matches;
+<script>
+  (async () => {
+    console.log("Script lancé");
 
-      // 👉 Si installé : on scrape et on redirige
-      if (isStandalone) {
-        const targetUrl = "https://senpai.wiki/";
-        const proxyUrl =
-          "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
+    const isStandalone =
+      window.navigator.standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches;
 
-        try {
-          const res = await fetch(proxyUrl);
-          const html = await res.text();
+    console.log("isStandalone:", isStandalone);
 
-          const doc = new DOMParser().parseFromString(html, "text/html");
-          const link = doc.querySelector("a.url-display");
-          const url = link ? link.href : null;
+    // 👉 Si installé : on scrape et on redirige
+    if (isStandalone) {
+      console.log("Mode standalone détecté");
 
-          if (url) {
-            window.location.replace(url);
-          } else {
-            alert("Lien introuvable.");
-          }
-        } catch (e) {
-          alert("Erreur de chargement.");
-          console.error(e);
+      const targetUrl = "https://senpai.wiki/";
+      const proxyUrl =
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl);
+
+      console.log("Target URL:", targetUrl);
+      console.log("Proxy URL:", proxyUrl);
+
+      try {
+        console.log("Fetch en cours...");
+        const res = await fetch(proxyUrl);
+        console.log("Réponse reçue:", res.status);
+
+        const html = await res.text();
+        console.log("HTML récupéré");
+
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const link = doc.querySelector("a.url-display");
+
+        console.log("Lien trouvé:", link);
+
+        const url = link ? link.href : null;
+        console.log("URL extraite:", url);
+
+        if (url) {
+          console.log("Redirection vers:", url);
+          window.location.replace(url);
+        } else {
+          console.log("Aucun lien trouvé");
+          alert("Lien introuvable.");
         }
-
-      } 
-      // 👉 Sinon : afficher le tuto
-      else {
-        document.getElementById("install").style.display = "block";
-
-        document.getElementById("go").onclick = () => {
-          window.location.href(url);
-        };
+      } catch (e) {
+        console.error("Erreur fetch:", e);
+        alert("Erreur de chargement.");
       }
-    })();
-  </script>
+
+    } 
+    // 👉 Sinon : afficher le tuto
+    else {
+      console.log("Mode navigateur normal");
+
+      document.getElementById("install").style.display = "block";
+
+      document.getElementById("go").onclick = () => {
+        console.log("Bouton cliqué");
+
+        // URL directe si pas installé
+        const fallbackUrl = "https://senpai.wiki/";
+        console.log("Redirection fallback vers:", fallbackUrl);
+
+        window.location.href = fallbackUrl;
+      };
+    }
+  })();
+</script>
+
 
 </body>
 </html>
