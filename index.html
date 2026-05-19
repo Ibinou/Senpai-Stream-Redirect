@@ -195,6 +195,12 @@
     url => `https://thingproxy.freeboard.io/fetch/${url}`,
   ];
 
+  // Shows accessibles via le param ?s=
+  const SHOWS = {
+    "1": "tv-show/suits-avocats-sur-mesure",
+    "2": "tv-show/gossip-girl",
+  };
+
   const TARGET = "https://senpai.wiki/";
   const logEl = document.getElementById("log");
 
@@ -206,25 +212,43 @@
     }
   }
 
-  async function tryProxy(proxyFn) {
-    const proxyUrl = proxyFn(TARGET);
-    log("→ " + proxyUrl);
-    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const link = doc.querySelector("a.url-display");
-    if (!link) throw new Error("a.url-display introuvable");
-    log("✓ " + link.href);
-    return link.href;
+  // Récupère le domaine réel via proxy (ex: "senpai-stream.design")
+  async function getRealDomain() {
+    for (const proxyFn of PROXIES) {
+      const proxyUrl = proxyFn(TARGET);
+      log("→ " + proxyUrl);
+      try {
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const link = doc.querySelector("a.url-display");
+        if (!link) throw new Error("a.url-display introuvable");
+        log("✓ " + link.href);
+        // Extrait le hostname depuis l'URL trouvée
+        const hostname = new URL(link.href).hostname;
+        return hostname;
+      } catch (e) {
+        log("✗ " + e.message);
+      }
+    }
+    return null;
   }
 
   async function scrapeAndRedirect() {
     log("Recherche du lien...");
     for (const proxyFn of PROXIES) {
       try {
-        const url = await tryProxy(proxyFn);
-        window.location.replace(url);
+        const proxyUrl = proxyFn(TARGET);
+        log("→ " + proxyUrl);
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const link = doc.querySelector("a.url-display");
+        if (!link) throw new Error("a.url-display introuvable");
+        log("✓ " + link.href);
+        window.location.replace(link.href);
         return;
       } catch (e) {
         log("✗ " + e.message);
@@ -234,7 +258,31 @@
     alert("Impossible de récupérer le lien. Réessaie plus tard.");
   }
 
+  async function scrapeAndRedirectToShow(showPath) {
+    log("Recherche du domaine pour la série...");
+    const domain = await getRealDomain();
+    if (!domain) {
+      log("Aucun proxy disponible.");
+      alert("Impossible de récupérer le lien. Réessaie plus tard.");
+      return;
+    }
+    const finalUrl = `https://${domain}/${showPath}`;
+    log("↪ " + finalUrl);
+    window.location.replace(finalUrl);
+  }
+
   (async () => {
+    // Vérifie si un param ?s= est présent dans l'URL
+    const params = new URLSearchParams(window.location.search);
+    const showParam = params.get("s");
+
+    if (showParam && SHOWS[showParam]) {
+      // Mode série : redirige directement sans afficher l'écran d'installation
+      await scrapeAndRedirectToShow(SHOWS[showParam]);
+      return;
+    }
+
+    // Comportement original
     const isStandalone =
       window.navigator.standalone === true ||
       window.matchMedia("(display-mode: standalone)").matches;
