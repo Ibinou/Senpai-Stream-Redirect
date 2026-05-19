@@ -65,9 +65,7 @@
       margin-bottom: 32px;
     }
 
-    h2 span {
-      color: var(--muted);
-    }
+    h2 span { color: var(--muted); }
 
     .steps {
       display: flex;
@@ -76,11 +74,7 @@
       margin-bottom: 48px;
     }
 
-    .step {
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
-    }
+    .step { display: flex; align-items: flex-start; gap: 14px; }
 
     .step-num {
       font-family: 'DM Mono', monospace;
@@ -90,15 +84,8 @@
       min-width: 18px;
     }
 
-    .step-text {
-      font-size: 15px;
-      line-height: 1.5;
-      color: var(--fg);
-    }
-
-    .step-text strong {
-      font-weight: 500;
-    }
+    .step-text { font-size: 15px; line-height: 1.5; color: var(--fg); }
+    .step-text strong { font-weight: 500; }
 
     .divider {
       width: 32px;
@@ -131,21 +118,11 @@
       color: var(--bg);
     }
 
-    #go:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+    #go:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .arrow {
-      font-size: 13px;
-      transition: transform 0.2s ease;
-    }
+    .arrow { font-size: 13px; transition: transform 0.2s ease; }
+    #go:hover:not(:disabled) .arrow { transform: translateX(3px); }
 
-    #go:hover:not(:disabled) .arrow {
-      transform: translateX(3px);
-    }
-
-    /* Auto-open toggle */
     .auto-row {
       display: flex;
       align-items: center;
@@ -163,20 +140,8 @@
       user-select: none;
     }
 
-    /* Custom checkbox */
-    .toggle {
-      position: relative;
-      width: 34px;
-      height: 20px;
-      flex-shrink: 0;
-    }
-
-    .toggle input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-      position: absolute;
-    }
+    .toggle { position: relative; width: 34px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 
     .toggle-track {
       position: absolute;
@@ -187,9 +152,7 @@
       cursor: pointer;
     }
 
-    .toggle input:checked + .toggle-track {
-      background: var(--fg);
-    }
+    .toggle input:checked + .toggle-track { background: var(--fg); }
 
     .toggle-thumb {
       position: absolute;
@@ -203,9 +166,7 @@
       pointer-events: none;
     }
 
-    .toggle input:checked ~ .toggle-thumb {
-      transform: translateX(14px);
-    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(14px); }
 
     #log {
       margin-top: 28px;
@@ -247,7 +208,6 @@
       <span class="arrow">→</span>
     </button>
 
-    <!-- Auto-open toggle -->
     <div class="auto-row">
       <label class="toggle" for="autoOpen">
         <input type="checkbox" id="autoOpen">
@@ -268,11 +228,11 @@
     url => `https://thingproxy.freeboard.io/fetch/${url}`,
   ];
 
-  const TARGET = "https://senpai.wiki/";
-  const LS_AUTO_KEY = "senpai_auto_open";
-  const logEl = document.getElementById("log");
+  const TARGET    = "https://senpai.wiki/";
+  const LS_AUTO   = "senpai_auto_open";
+  const logEl     = document.getElementById("log");
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // ── Logging ───────────────────────────────────────────────────────────────
 
   function log(msg) {
     console.log(msg);
@@ -282,41 +242,48 @@
     }
   }
 
-  /**
-   * Returns the path+search+hash of the current page
-   * e.g. "/tv-show/gossip-girl" or "" for root.
-   */
-  function getCurrentSuffix() {
-    const { pathname, search, hash } = window.location;
-    // Don't forward bare "/" — that's the homepage, no suffix needed
-    const suffix = pathname === "/" ? "" : pathname;
-    return suffix + search + hash;
+  // ── Récupère le suffixe de chemin ─────────────────────────────────────────
+  // GitHub Pages redirige les routes inconnues vers 404.html.
+  // Notre 404.html encode le path dans window.location.hash (#/tv-show/...).
+  // On lit d'abord le hash, sinon le pathname courant.
+
+  function getSuffix() {
+    // 1. Lire depuis le hash encodé par 404.html  →  "#/tv-show/gossip-girl"
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#/')) {
+      const suffix = hash.slice(1); // retire le "#"
+      // Nettoyer le hash de l'URL sans recharger la page
+      history.replaceState(null, '', suffix || '/');
+      return suffix === '/' ? '' : suffix;
+    }
+
+    // 2. Sinon, lire le pathname normal (mode standalone / PWA)
+    const path = window.location.pathname;
+
+    // Ignorer la redirection parasite de GitHub Pages
+    if (path === '/Senpai-Stream-Redirect/' || path === '/Senpai-Stream-Redirect') {
+      return '';
+    }
+
+    return path === '/' ? '' : path + window.location.search;
   }
 
-  /**
-   * Given a base URL (the live domain from senpai.wiki) and a suffix,
-   * build the final destination URL.
-   *
-   * e.g. base  = "https://senpai-stream.live/"
-   *      suffix = "/tv-show/gossip-girl"
-   *   → "https://senpai-stream.live/tv-show/gossip-girl"
-   */
+  // ── Construit l'URL finale ────────────────────────────────────────────────
+
   function buildDestination(baseUrl, suffix) {
     try {
       const base = new URL(baseUrl);
       if (!suffix) return base.href;
-      // Merge: keep origin+basePath, append suffix
       const dest = new URL(suffix, base.origin);
       return dest.href;
     } catch {
-      // Fallback: naive string concat
-      const clean = baseUrl.replace(/\/$/, "");
-      const sfx   = suffix.startsWith("/") ? suffix : "/" + suffix;
+      const clean = baseUrl.replace(/\/$/, '');
+      const sfx   = suffix.startsWith('/') ? suffix : '/' + suffix;
       return clean + sfx;
     }
   }
 
-  // ── Scraping ─────────────────────────────────────────────────────────────
+  // ── Scraping & redirection ────────────────────────────────────────────────
 
   async function tryProxy(proxyFn) {
     const proxyUrl = proxyFn(TARGET);
@@ -333,14 +300,14 @@
 
   async function scrapeAndRedirect() {
     log("Recherche du lien...");
-    const suffix = getCurrentSuffix();
-    if (suffix) log("Suffixe détecté : " + suffix);
+    const suffix = getSuffix();
+    if (suffix) log("Suffixe : " + suffix);
 
     for (const proxyFn of PROXIES) {
       try {
         const baseUrl = await tryProxy(proxyFn);
         const dest    = buildDestination(baseUrl, suffix);
-        if (dest !== baseUrl) log("→ destination finale : " + dest);
+        if (dest !== baseUrl) log("→ destination : " + dest);
         window.location.replace(dest);
         return;
       } catch (e) {
@@ -351,16 +318,12 @@
     alert("Impossible de récupérer le lien. Réessaie plus tard.");
   }
 
-  // ── Auto-open toggle (localStorage) ──────────────────────────────────────
+  // ── Toggle auto-open ──────────────────────────────────────────────────────
 
   const autoCheckbox = document.getElementById("autoOpen");
-
-  // Restore saved preference
-  autoCheckbox.checked = localStorage.getItem(LS_AUTO_KEY) === "1";
-
-  // Save on change
+  autoCheckbox.checked = localStorage.getItem(LS_AUTO) === "1";
   autoCheckbox.addEventListener("change", () => {
-    localStorage.setItem(LS_AUTO_KEY, autoCheckbox.checked ? "1" : "0");
+    localStorage.setItem(LS_AUTO, autoCheckbox.checked ? "1" : "0");
   });
 
   // ── Boot ──────────────────────────────────────────────────────────────────
@@ -371,11 +334,9 @@
       window.matchMedia("(display-mode: standalone)").matches;
 
     if (isStandalone) {
-      // Always redirect immediately in standalone / PWA mode
       await scrapeAndRedirect();
     } else {
-      const installEl = document.getElementById("install");
-      installEl.style.display = "flex";
+      document.getElementById("install").style.display = "flex";
 
       const btn = document.getElementById("go");
 
@@ -389,8 +350,7 @@
 
       btn.onclick = triggerRedirect;
 
-      // Auto-open if preference is set
-      if (localStorage.getItem(LS_AUTO_KEY) === "1") {
+      if (localStorage.getItem(LS_AUTO) === "1") {
         await triggerRedirect();
       }
     }
