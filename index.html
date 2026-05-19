@@ -11,7 +11,6 @@
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@300&display=swap" rel="stylesheet">
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -66,7 +65,9 @@
       margin-bottom: 32px;
     }
 
-    h2 span { color: var(--muted); }
+    h2 span {
+      color: var(--muted);
+    }
 
     .steps {
       display: flex;
@@ -75,17 +76,29 @@
       margin-bottom: 48px;
     }
 
-    .step { display: flex; gap: 14px; }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
 
     .step-num {
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       color: var(--muted);
-      min-width: 18px;
       padding-top: 2px;
+      min-width: 18px;
     }
 
-    .step-text { font-size: 15px; line-height: 1.5; }
+    .step-text {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--fg);
+    }
+
+    .step-text strong {
+      font-weight: 500;
+    }
 
     .divider {
       width: 32px;
@@ -95,56 +108,82 @@
     }
 
     #go {
+      appearance: none;
+      background: none;
       border: 1px solid var(--border);
       border-radius: 100px;
       padding: 13px 28px;
-      background: none;
-      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
       font-size: 14px;
+      font-weight: 400;
+      color: var(--fg);
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
       display: flex;
-      gap: 10px;
       align-items: center;
-      transition: 0.2s;
+      gap: 10px;
+      letter-spacing: 0.01em;
     }
 
     #go:hover:not(:disabled) {
       background: var(--fg);
+      border-color: var(--fg);
       color: var(--bg);
     }
 
-    #go:disabled { opacity: 0.4; cursor: not-allowed; }
+    #go:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
 
-    .arrow { transition: 0.2s; }
-    #go:hover:not(:disabled) .arrow { transform: translateX(3px); }
+    .arrow {
+      font-size: 13px;
+      transition: transform 0.2s ease;
+    }
+
+    #go:hover:not(:disabled) .arrow {
+      transform: translateX(3px);
+    }
 
     #log {
       margin-top: 28px;
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       color: var(--muted);
+      line-height: 1.8;
       white-space: pre-wrap;
+      word-break: break-all;
       max-width: 360px;
       opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     #log.visible { opacity: 1; }
   </style>
 </head>
-
 <body>
   <div id="install">
     <p class="label">Senpai Stream</p>
     <h2>Installe<br><span>l'application.</span></h2>
-
     <div class="steps">
-      <div class="step"><span class="step-num">01</span><span class="step-text">Appuie sur <strong>Partager</strong></span></div>
-      <div class="step"><span class="step-num">02</span><span class="step-text">Ajoute à l'écran d'accueil</span></div>
-      <div class="step"><span class="step-num">03</span><span class="step-text">Ouvre l'app</span></div>
+      <div class="step">
+        <span class="step-num">01</span>
+        <span class="step-text">Appuie sur <strong>Partager</strong> en bas de Safari</span>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <span class="step-text">Choisis <strong>Ajouter à l'écran d'accueil</strong></span>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <span class="step-text">Ouvre l'app depuis ton écran d'accueil</span>
+      </div>
     </div>
-
     <div class="divider"></div>
-
-    <button id="go">Continuer <span class="arrow">→</span></button>
+    <button id="go">
+      Continuer quand même
+      <span class="arrow">→</span>
+    </button>
     <div id="log"></div>
   </div>
 
@@ -156,6 +195,7 @@
     url => `https://thingproxy.freeboard.io/fetch/${url}`,
   ];
 
+  // Shows accessibles via le param ?s=
   const SHOWS = {
     "1": "tv-show/suits-avocats-sur-mesure",
     "2": "tv-show/gossip-girl",
@@ -166,77 +206,100 @@
 
   function log(msg) {
     console.log(msg);
-    logEl.classList.add("visible");
-    logEl.textContent += msg + "\n";
+    if (logEl) {
+      logEl.classList.add("visible");
+      logEl.textContent += msg + "\n";
+    }
   }
 
-  function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
-
+  // Récupère le domaine réel via proxy (ex: "senpai-stream.design")
   async function getRealDomain() {
     for (const proxyFn of PROXIES) {
+      const proxyUrl = proxyFn(TARGET);
+      log("→ " + proxyUrl);
       try {
-        const res = await fetch(proxyFn(TARGET), { signal: AbortSignal.timeout(8000) });
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error("HTTP " + res.status);
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, "text/html");
         const link = doc.querySelector("a.url-display");
-        if (!link) throw new Error("no link");
-        return new URL(link.href).hostname;
-      } catch (e) {}
+        if (!link) throw new Error("a.url-display introuvable");
+        log("✓ " + link.href);
+        // Extrait le hostname depuis l'URL trouvée
+        const hostname = new URL(link.href).hostname;
+        return hostname;
+      } catch (e) {
+        log("✗ " + e.message);
+      }
     }
     return null;
   }
 
-  async function scrapeAndRedirectToShow(showPath) {
-    const domain = await getRealDomain();
-    if (!domain) return alert("Erreur proxy");
-
-    const url = `https://${domain}/${showPath}`;
-    window.location.replace(url);
-  }
-
   async function scrapeAndRedirect() {
+    log("Recherche du lien...");
     for (const proxyFn of PROXIES) {
       try {
-        const res = await fetch(proxyFn(TARGET), { signal: AbortSignal.timeout(8000) });
+        const proxyUrl = proxyFn(TARGET);
+        log("→ " + proxyUrl);
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error("HTTP " + res.status);
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, "text/html");
         const link = doc.querySelector("a.url-display");
-        if (!link) throw new Error();
+        if (!link) throw new Error("a.url-display introuvable");
+        log("✓ " + link.href);
         window.location.replace(link.href);
         return;
-      } catch (e) {}
+      } catch (e) {
+        log("✗ " + e.message);
+      }
     }
-    alert("Impossible de récupérer le lien");
+    log("Aucun proxy disponible.");
+    alert("Impossible de récupérer le lien. Réessaie plus tard.");
+  }
+
+  async function scrapeAndRedirectToShow(showPath) {
+    log("Recherche du domaine pour la série...");
+    const domain = await getRealDomain();
+    if (!domain) {
+      log("Aucun proxy disponible.");
+      alert("Impossible de récupérer le lien. Réessaie plus tard.");
+      return;
+    }
+    const finalUrl = `https://${domain}/${showPath}`;
+    log("↪ " + finalUrl);
+    window.location.replace(finalUrl);
   }
 
   (async () => {
-    const params = new URLSearchParams(location.search);
+    // Vérifie si un param ?s= est présent dans l'URL
+    const params = new URLSearchParams(window.location.search);
     const showParam = params.get("s");
 
-    // ✅ DELAI AJOUTÉ ICI
     if (showParam && SHOWS[showParam]) {
-      log("Attente 10 secondes...");
-      await sleep(10000);
+      // Mode série : redirige directement sans afficher l'écran d'installation
       await scrapeAndRedirectToShow(SHOWS[showParam]);
       return;
     }
 
+    // Comportement original
     const isStandalone =
-      navigator.standalone ||
+      window.navigator.standalone === true ||
       window.matchMedia("(display-mode: standalone)").matches;
 
     if (isStandalone) {
       await scrapeAndRedirect();
     } else {
-      document.getElementById("install").style.display = "flex";
+      const installEl = document.getElementById("install");
+      installEl.style.display = "flex";
 
       document.getElementById("go").onclick = async () => {
         const btn = document.getElementById("go");
         btn.disabled = true;
         btn.innerHTML = `Chargement <span class="arrow">...</span>`;
         await scrapeAndRedirect();
+        btn.disabled = false;
+        btn.innerHTML = `Continuer quand même <span class="arrow">→</span>`;
       };
     }
   })();
