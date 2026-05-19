@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // Encode l'URL complète dans le hash et redirige vers index.html
+    var path = window.location.pathname + window.location.search;
+    // Ignore la redirection parasite de GitHub Pages vers /Senpai-Stream-Redirect/
+    if (path === '/Senpai-Stream-Redirect/' || path === '/Senpai-Stream-Redirect') {
+      path = '/';
+    }
+    window.location.replace('/' + '#' + path);
+  </script>
+</head>
+<body></body>
+</html>
