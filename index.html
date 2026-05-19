@@ -145,6 +145,68 @@
       transform: translateX(3px);
     }
 
+    /* Auto-open toggle */
+    .auto-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .auto-row label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Custom checkbox */
+    .toggle {
+      position: relative;
+      width: 34px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 100px;
+      transition: background 0.2s ease;
+      cursor: pointer;
+    }
+
+    .toggle input:checked + .toggle-track {
+      background: var(--fg);
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      pointer-events: none;
+    }
+
+    .toggle input:checked ~ .toggle-thumb {
+      transform: translateX(14px);
+    }
+
     #log {
       margin-top: 28px;
       font-family: 'DM Mono', monospace;
@@ -184,6 +246,17 @@
       Continuer quand même
       <span class="arrow">→</span>
     </button>
+
+    <!-- Auto-open toggle -->
+    <div class="auto-row">
+      <label class="toggle" for="autoOpen">
+        <input type="checkbox" id="autoOpen">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+      <label for="autoOpen">Ouvrir auto</label>
+    </div>
+
     <div id="log"></div>
   </div>
 
@@ -196,7 +269,10 @@
   ];
 
   const TARGET = "https://senpai.wiki/";
+  const LS_AUTO_KEY = "senpai_auto_open";
   const logEl = document.getElementById("log");
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   function log(msg) {
     console.log(msg);
@@ -206,13 +282,49 @@
     }
   }
 
+  /**
+   * Returns the path+search+hash of the current page
+   * e.g. "/tv-show/gossip-girl" or "" for root.
+   */
+  function getCurrentSuffix() {
+    const { pathname, search, hash } = window.location;
+    // Don't forward bare "/" — that's the homepage, no suffix needed
+    const suffix = pathname === "/" ? "" : pathname;
+    return suffix + search + hash;
+  }
+
+  /**
+   * Given a base URL (the live domain from senpai.wiki) and a suffix,
+   * build the final destination URL.
+   *
+   * e.g. base  = "https://senpai-stream.live/"
+   *      suffix = "/tv-show/gossip-girl"
+   *   → "https://senpai-stream.live/tv-show/gossip-girl"
+   */
+  function buildDestination(baseUrl, suffix) {
+    try {
+      const base = new URL(baseUrl);
+      if (!suffix) return base.href;
+      // Merge: keep origin+basePath, append suffix
+      const dest = new URL(suffix, base.origin);
+      return dest.href;
+    } catch {
+      // Fallback: naive string concat
+      const clean = baseUrl.replace(/\/$/, "");
+      const sfx   = suffix.startsWith("/") ? suffix : "/" + suffix;
+      return clean + sfx;
+    }
+  }
+
+  // ── Scraping ─────────────────────────────────────────────────────────────
+
   async function tryProxy(proxyFn) {
     const proxyUrl = proxyFn(TARGET);
     log("→ " + proxyUrl);
     const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    const doc  = new DOMParser().parseFromString(html, "text/html");
     const link = doc.querySelector("a.url-display");
     if (!link) throw new Error("a.url-display introuvable");
     log("✓ " + link.href);
@@ -221,10 +333,15 @@
 
   async function scrapeAndRedirect() {
     log("Recherche du lien...");
+    const suffix = getCurrentSuffix();
+    if (suffix) log("Suffixe détecté : " + suffix);
+
     for (const proxyFn of PROXIES) {
       try {
-        const url = await tryProxy(proxyFn);
-        window.location.replace(url);
+        const baseUrl = await tryProxy(proxyFn);
+        const dest    = buildDestination(baseUrl, suffix);
+        if (dest !== baseUrl) log("→ destination finale : " + dest);
+        window.location.replace(dest);
         return;
       } catch (e) {
         log("✗ " + e.message);
@@ -234,25 +351,48 @@
     alert("Impossible de récupérer le lien. Réessaie plus tard.");
   }
 
+  // ── Auto-open toggle (localStorage) ──────────────────────────────────────
+
+  const autoCheckbox = document.getElementById("autoOpen");
+
+  // Restore saved preference
+  autoCheckbox.checked = localStorage.getItem(LS_AUTO_KEY) === "1";
+
+  // Save on change
+  autoCheckbox.addEventListener("change", () => {
+    localStorage.setItem(LS_AUTO_KEY, autoCheckbox.checked ? "1" : "0");
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+
   (async () => {
     const isStandalone =
       window.navigator.standalone === true ||
       window.matchMedia("(display-mode: standalone)").matches;
 
     if (isStandalone) {
+      // Always redirect immediately in standalone / PWA mode
       await scrapeAndRedirect();
     } else {
       const installEl = document.getElementById("install");
       installEl.style.display = "flex";
 
-      document.getElementById("go").onclick = async () => {
-        const btn = document.getElementById("go");
+      const btn = document.getElementById("go");
+
+      async function triggerRedirect() {
         btn.disabled = true;
         btn.innerHTML = `Chargement <span class="arrow">...</span>`;
         await scrapeAndRedirect();
         btn.disabled = false;
         btn.innerHTML = `Continuer quand même <span class="arrow">→</span>`;
-      };
+      }
+
+      btn.onclick = triggerRedirect;
+
+      // Auto-open if preference is set
+      if (localStorage.getItem(LS_AUTO_KEY) === "1") {
+        await triggerRedirect();
+      }
     }
   })();
 </script>
